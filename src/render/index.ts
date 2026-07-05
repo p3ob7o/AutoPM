@@ -9,6 +9,7 @@ import {
   type Config, type CreateAgent, type EnvironmentType, type Manifest, type RoleName,
 } from "./schema.ts";
 import { buildContext, resolve, resolveModel } from "./placeholders.ts";
+import { collectMemoryStores } from "./sections.ts";
 import { collectCronTriggers, cronExpressionFor } from "./triggers.ts";
 import { logger } from "../lib/logger.ts";
 
@@ -23,6 +24,7 @@ export interface RenderedAgent {
   systemPrompt: string;
   body: string;
   cronTriggers: string[];
+  memoryStores: string[];
 }
 
 export interface RenderResult { agents: RenderedAgent[]; manifest: Manifest; }
@@ -83,6 +85,12 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
     const environment = resolveEnvironment(config, role);
     const model = resolveModel(config, role, fm.model_default);
     const cronTriggers = collectCronTriggers(body);
+    let memoryStores: string[];
+    try {
+      memoryStores = collectMemoryStores(body);
+    } catch (err) {
+      throw new Error(`agent '${role}': ${(err as Error).message}`);
+    }
 
     // Contract 1 (§13): validate the CreateAgent shape before writing.
     // tools/mcp_servers/skills stay empty until the agent-authoring milestones
@@ -115,12 +123,13 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
       systemPrompt,
       body,
       cronTriggers,
+      memoryStores,
     });
   }
 
   // Memory bootstrap: seed files resolve in the Product role's context (§8);
   // store name = file stem = mount directory (§9).
-  const memoryStores: Manifest["memory_stores"] = [];
+  const seeds = new Map<string, string>();
   const memDir = join(repoRoot, "instances", instance, "memory");
   if (existsSync(memDir)) {
     await mkdir(join(outDir, "memory"), { recursive: true });
@@ -131,9 +140,20 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
       const store = f.replace(/\.md$/, "");
       const resolved = resolve(await readFile(join(memDir, f), "utf8"), memCtx);
       await writeFile(join(outDir, "memory", `${store}.txt`), resolved);
-      memoryStores.push({ name: store, mount: `/mnt/memory/${store}`, seed: `memory/${store}.txt` });
+      seeds.set(store, `memory/${store}.txt`);
     }
   }
+
+  // The manifest lists every store the agents' `## Memory Stores` tables
+  // reference, not just the seeded ones — grows-over-time stores like
+  // decisions-log ship with seed: null but must still be provisioned.
+  const storeNames = new Set<string>(seeds.keys());
+  for (const a of agents) for (const s of a.memoryStores) storeNames.add(s);
+  const memoryStores: Manifest["memory_stores"] = [...storeNames].sort().map((name) => ({
+    name,
+    mount: `/mnt/memory/${name}`,
+    seed: seeds.get(name) ?? null,
+  }));
 
   // §11 class-1: one scheduled-deployment spec per declared cron.* trigger.
   const deployments: Manifest["deployments"] = [];

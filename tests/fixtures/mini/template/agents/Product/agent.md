@@ -21,5 +21,11 @@ Run on {{model}} in a {{sandbox_mode}} environment.
 Budget cap: {{budget.monthly_cap_usd}} USD/month.
 ```
 
+## Memory Stores
+| Store | Access | Why |
+|---|---|---|
+| product-canon | read-only | mission, strategy, goals |
+| decisions-log | read-write | Product writes decisions here |
+
 ## Notes
 Canon at {{project.canon_path}}.

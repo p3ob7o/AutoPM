@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import matter from "gray-matter";
 import { AgentFrontmatterSchema, ROLE_NAMES } from "../../src/render/schema.ts";
+import { collectMemoryStores } from "../../src/render/sections.ts";
 
 // The real template must stay parseable under the final schema — template
 // drift (legacy keys, unknown model, coordinator outside the Orchestrator)
@@ -25,4 +26,12 @@ test("the Product agent defaults to claude-opus-4-8 and is not the coordinator (
   const fm = AgentFrontmatterSchema.parse(matter(raw).data);
   expect(fm.model_default).toBe("claude-opus-4-8");
   expect(fm.multi_agent).toBe("none");
+});
+
+test("the Product agent's Memory Stores table parses to the §9 stores it declares", async () => {
+  const raw = await readFile("template/agents/Product/agent.md", "utf8");
+  const { content } = matter(raw);
+  expect(collectMemoryStores(content).sort()).toEqual([
+    "decisions-log", "finance-actuals", "product-canon", "team-roster",
+  ]);
 });

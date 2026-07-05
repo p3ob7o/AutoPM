@@ -59,7 +59,9 @@ describe("render", () => {
     ]);
 
     expect(manifest.memory_stores).toEqual([
+      { name: "decisions-log", mount: "/mnt/memory/decisions-log", seed: null },
       { name: "product-canon", mount: "/mnt/memory/product-canon", seed: "memory/product-canon.txt" },
+      { name: "team-roster", mount: "/mnt/memory/team-roster", seed: null },
     ]);
     expect(manifest.webhook_checklist).toEqual([
       { event: "pr_opened", url: "https://hook.demo.example.com/wh/pr.opened" },

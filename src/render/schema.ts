@@ -114,22 +114,61 @@ const AGENT_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 // Contract 1 (§13): every emitted agents/<role>.agent.yaml is validated against
 // this CreateAgent request shape before it is written — plausible-but-invalid
-// YAML must fail at render time, not at `ant beta:agents create` time.
+// YAML must fail at render time, not at `ant beta:agents create` time. Field
+// shapes mirror AgentCreateParams in @anthropic-ai/sdk beta.agents (0.97.1):
+// entries pin the discriminator + required fields, passthrough for optionals.
+
+const AgentToolsetToolParams = z.object({
+  type: z.literal("agent_toolset_20260401"),
+}).passthrough();
+
+const McpToolsetToolParams = z.object({
+  type: z.literal("mcp_toolset"),
+  mcp_server_name: z.string().min(1).max(255),
+}).passthrough();
+
+const CustomToolParams = z.object({
+  type: z.literal("custom"),
+  name: z.string().min(1).max(128),
+  description: z.string().min(1).max(1024),
+  input_schema: z.object({
+    type: z.literal("object").optional(),
+    properties: z.record(z.string(), z.unknown()).nullable().optional(),
+    required: z.array(z.string()).optional(),
+  }).passthrough(),
+}).passthrough();
+
+const SkillParams = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("anthropic"), skill_id: z.string().min(1), version: z.string().nullable().optional() }).strict(),
+  z.object({ type: z.literal("custom"), skill_id: z.string().min(1), version: z.string().nullable().optional() }).strict(),
+]);
+
+// Roster entry: agent ID string, versioned {type:"agent"} reference, or self (§10).
+const MultiagentRosterEntry = z.union([
+  z.string().min(1),
+  z.object({ type: z.literal("agent"), id: z.string().min(1), version: z.number().int().min(1).optional() }).strict(),
+  z.object({ type: z.literal("self") }).strict(),
+]);
+
 export const CreateAgentSchema = z.object({
-  name: z.string().regex(AGENT_NAME_RE, "agent name must be kebab-case"),
+  name: z.string().regex(AGENT_NAME_RE, "agent name must be kebab-case").max(256),
   model: ModelId,
-  system: z.string().min(1),
-  tools: z.array(z.object({ type: z.string().min(1) }).passthrough()),
-  mcp_servers: z.array(z.object({ name: z.string().min(1), url: z.string().url() }).passthrough()),
-  skills: z.array(z.object({ id: z.string().min(1) }).passthrough()),
+  system: z.string().min(1).max(100_000),
+  tools: z.array(z.discriminatedUnion("type", [
+    AgentToolsetToolParams, McpToolsetToolParams, CustomToolParams,
+  ])),
+  mcp_servers: z.array(z.object({
+    name: z.string().min(1).max(255),
+    type: z.literal("url"),
+    url: z.string().url(),
+  }).strict()).max(20),
+  skills: z.array(SkillParams).max(20),
   multiagent: z.object({
     type: z.literal("coordinator"),
-    agents: z.array(z.union([
-      z.object({ type: z.literal("self") }).strict(),
-      z.object({ agent_id: z.string().min(1) }).strict(),
-    ])).min(1),
+    agents: z.array(MultiagentRosterEntry).min(1).max(20),
   }).strict().optional(),
-  metadata: z.record(z.string(), z.string()),
+  metadata: z.record(z.string().max(64), z.string().max(512))
+    .refine((m) => Object.keys(m).length <= 16, "metadata allows at most 16 pairs"),
 }).strict();
 export type CreateAgent = z.infer<typeof CreateAgentSchema>;
 

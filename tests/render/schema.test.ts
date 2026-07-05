@@ -156,6 +156,51 @@ describe("CreateAgentSchema", () => {
     expect(parsed.multiagent?.agents).toHaveLength(1);
   });
 
+  test("accepts populated fields in the real SDK shapes", () => {
+    const parsed = CreateAgentSchema.parse({
+      ...minimal,
+      tools: [
+        { type: "agent_toolset_20260401" },
+        { type: "mcp_toolset", mcp_server_name: "github" },
+        { type: "custom", name: "escalate_to_human", description: "Page a human operator.", input_schema: { type: "object" } },
+      ],
+      mcp_servers: [{ type: "url", name: "github", url: "https://api.githubcopilot.com/mcp/" }],
+      skills: [
+        { type: "anthropic", skill_id: "xlsx" },
+        { type: "custom", skill_id: "skill_01XJ5abc", version: "3" },
+      ],
+      multiagent: {
+        type: "coordinator",
+        agents: [{ type: "self" }, "agent_01ABC", { type: "agent", id: "agent_01DEF", version: 2 }],
+      },
+    });
+    expect(parsed.multiagent?.agents).toHaveLength(3);
+    expect(parsed.skills).toHaveLength(2);
+  });
+
+  test("rejects an MCP server entry without its 'url' type discriminator", () => {
+    expect(() => CreateAgentSchema.parse({
+      ...minimal,
+      mcp_servers: [{ name: "github", url: "https://api.githubcopilot.com/mcp/" }],
+    })).toThrow();
+  });
+
+  test("rejects skill entries that are not type + skill_id", () => {
+    expect(() => CreateAgentSchema.parse({ ...minimal, skills: [{ id: "xlsx" }] })).toThrow();
+    expect(() => CreateAgentSchema.parse({ ...minimal, skills: [{ skill_id: "xlsx" }] })).toThrow();
+  });
+
+  test("rejects the pre-review {agent_id} roster shape", () => {
+    expect(() => CreateAgentSchema.parse({
+      ...minimal,
+      multiagent: { type: "coordinator", agents: [{ agent_id: "agent_01ABC" }] },
+    })).toThrow();
+  });
+
+  test("rejects an mcp_toolset tool without mcp_server_name", () => {
+    expect(() => CreateAgentSchema.parse({ ...minimal, tools: [{ type: "mcp_toolset" }] })).toThrow();
+  });
+
   test("rejects an unknown model id", () => {
     expect(() => CreateAgentSchema.parse({ ...minimal, model: "gpt-6" })).toThrow();
   });

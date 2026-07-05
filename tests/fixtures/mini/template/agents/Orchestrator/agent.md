@@ -26,5 +26,10 @@ Run on {{model}} in a {{sandbox_mode}} environment.
 - `cron.weekly.monday.1000` → convene weekly planning.
 - `manual.orchestrator` → operator-initiated.
 
+## Memory Stores
+| Store | Access | Why |
+|---|---|---|
+| team-roster | read-only | chartered roles when routing |
+
 ## Notes
 Timezone for all scheduled deployments: {{scheduler.timezone}}.
