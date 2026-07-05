@@ -2,60 +2,92 @@ import { z } from "zod";
 
 export const ROLE_NAMES = [
   "product", "code", "quality", "design", "marketing",
-  "support", "research", "project", "finance",
+  "support", "research", "orchestrator", "finance",
 ] as const;
 export type RoleName = (typeof ROLE_NAMES)[number];
 const RoleEnum = z.enum(ROLE_NAMES);
 
 export const ModelId = z.enum([
-  "claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5",
+  "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5",
+  "claude-sonnet-4-6", "claude-haiku-4-5", "claude-fable-5",
 ]);
 export type ModelId = z.infer<typeof ModelId>;
 
-export const SandboxMode = z.enum(["managed", "self_hosted"]);
-export type SandboxMode = z.infer<typeof SandboxMode>;
-export const SandboxProvider = z.enum(["cloudflare", "daytona", "modal", "vercel", "self"]);
+// §6A: execution placement is a property of the environment, not the agent.
+export const EnvironmentType = z.enum(["cloud", "self_hosted"]);
+export type EnvironmentType = z.infer<typeof EnvironmentType>;
 
-const SandboxRoleConfig = z.object({
-  mode: SandboxMode,
-  provider: SandboxProvider.optional(),
-  endpoint: z.string().url().optional(),
+const NetworkingSchema = z.object({
+  policy: z.enum(["limited", "open"]).default("limited"),
+  allow_mcp_servers: z.boolean().default(true),
+  allowed_hosts: z.array(z.string()).default([]),
+}).strict();
+
+export const EnvironmentDefinition = z.object({
+  type: EnvironmentType,
+  networking: NetworkingSchema.default({}),
+}).strict();
+export type EnvironmentDefinition = z.infer<typeof EnvironmentDefinition>;
+
+const EnvironmentsSchema = z.object({
+  definitions: z.record(z.string(), EnvironmentDefinition),
+  roles: z.record(RoleEnum, z.string()).optional(),
+}).strict().superRefine((env, ctx) => {
+  for (const [role, name] of Object.entries(env.roles ?? {})) {
+    if (name !== undefined && !(name in env.definitions)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["roles", role],
+        message: `role '${role}' is assigned to environment '${name}', which is not in environments.definitions`,
+      });
+    }
+  }
 });
 
+const ProjectSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().regex(/^[a-z0-9-]+$/, "slug must be kebab-case"),
+  repo: z.string().min(1),
+  domain: z.string().url(),
+  description: z.string().min(1),
+}).strict();
+
 export const ConfigSchema = z.object({
-  project: z.object({
-    name: z.string().min(1),
-    slug: z.string().regex(/^[a-z0-9-]+$/, "slug must be kebab-case"),
-    repo: z.string().min(1),
-    domain: z.string().url(),
-    description: z.string().min(1),
-  }),
+  project: ProjectSchema,
   models: z.record(RoleEnum, ModelId).optional(),
+  environments: EnvironmentsSchema.default({ definitions: { default: { type: "cloud" } } }),
   vault: z.object({
     github: z.string().min(1),
     linear: z.string().min(1),
-    helpdesk: z.string().optional(),
+    helpdesk: z.string().min(1).optional(),
     anthropic: z.string().min(1),
-  }),
-  mcp: z.record(z.string(), z.object({
-    url: z.string().url(),
-    tunnel_id: z.string().optional(),
-  })),
-  sandbox: z.object({
-    default: SandboxMode.default("managed"),
-    roles: z.record(RoleEnum, SandboxRoleConfig).optional(),
-  }).default({ default: "managed" }),
+  }).strict(),
+  mcp: z.record(z.string(), z.object({ url: z.string().url() }).strict()),
   webhooks: z.object({
     base_url: z.string().url(),
     routes: z.record(z.string(), z.string()),
-  }),
+  }).strict(),
   budget: z.object({
     monthly_cap_usd: z.number().int().positive(),
     alarm_threshold_pct: z.number().int().min(0).max(100).default(75),
-  }),
-  scheduler: z.object({ timezone: z.string().min(1) }),
-});
+  }).strict(),
+  scheduler: z.object({ timezone: z.string().min(1) }).strict(),
+}).strict();
 export type Config = z.infer<typeof ConfigSchema>;
+
+export interface ResolvedEnvironment { name: string; type: EnvironmentType; }
+
+/** §12: a role runs in its assigned environment; unassigned roles run in `default`. */
+export function resolveEnvironment(config: Config, role: RoleName): ResolvedEnvironment {
+  const name = config.environments.roles?.[role] ?? "default";
+  const def = config.environments.definitions[name];
+  if (!def) {
+    throw new Error(
+      `role '${role}' resolves to environment '${name}', which is not in environments.definitions — assign the role explicitly or add a 'default' definition`,
+    );
+  }
+  return { name, type: def.type };
+}
 
 // YAML parsers coerce unquoted ISO dates (e.g. 2026-05-21) into Date objects;
 // accept either and normalize to a YYYY-MM-DD string.
@@ -63,6 +95,8 @@ const DateString = z.union([z.string(), z.date()]).transform((v) =>
   v instanceof Date ? v.toISOString().slice(0, 10) : v
 );
 
+// §7: there is no sandbox/environment key in agent frontmatter — placement is
+// instance configuration. Strict, so a stray legacy key fails render loudly.
 export const AgentFrontmatterSchema = z.object({
   title: z.string(),
   type: z.literal("autopm-agent"),
@@ -70,9 +104,72 @@ export const AgentFrontmatterSchema = z.object({
   updated: DateString,
   role: z.string().min(1),
   model_default: ModelId,
-  sandbox_default: SandboxMode,
-  session_length: z.object({ typical: z.string() }),
+  session_length: z.object({ typical: z.string() }).strict(),
   multi_agent: z.enum(["coordinator", "none"]),
   tags: z.array(z.string()),
-});
+}).strict();
 export type AgentFrontmatter = z.infer<typeof AgentFrontmatterSchema>;
+
+const AGENT_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+// Contract 1 (§13): every emitted agents/<role>.agent.yaml is validated against
+// this CreateAgent request shape before it is written — plausible-but-invalid
+// YAML must fail at render time, not at `ant beta:agents create` time.
+export const CreateAgentSchema = z.object({
+  name: z.string().regex(AGENT_NAME_RE, "agent name must be kebab-case"),
+  model: ModelId,
+  system: z.string().min(1),
+  tools: z.array(z.object({ type: z.string().min(1) }).passthrough()),
+  mcp_servers: z.array(z.object({ name: z.string().min(1), url: z.string().url() }).passthrough()),
+  skills: z.array(z.object({ id: z.string().min(1) }).passthrough()),
+  multiagent: z.object({
+    type: z.literal("coordinator"),
+    agents: z.array(z.union([
+      z.object({ type: z.literal("self") }).strict(),
+      z.object({ agent_id: z.string().min(1) }).strict(),
+    ])).min(1),
+  }).strict().optional(),
+  metadata: z.record(z.string(), z.string()),
+}).strict();
+export type CreateAgent = z.infer<typeof CreateAgentSchema>;
+
+// Contract 2 (§13): the manifest is a structured deploy contract with explicit
+// fields — never a catch-all bag.
+export const ManifestSchema = z.object({
+  project: ProjectSchema,
+  agents: z.array(z.object({
+    role: RoleEnum,
+    name: z.string().regex(AGENT_NAME_RE),
+    model: ModelId,
+    environment: z.string().min(1),
+    file: z.string().min(1),
+  }).strict()),
+  environments: z.object({
+    definitions: z.record(z.string(), EnvironmentDefinition),
+    roles: z.record(RoleEnum, z.string()),
+  }).strict(),
+  vault: z.array(z.object({
+    name: z.string().min(1),
+    ref: z.string().min(1),
+  }).strict()),
+  mcp_servers: z.array(z.object({
+    name: z.string().min(1),
+    url: z.string().url(),
+  }).strict()),
+  memory_stores: z.array(z.object({
+    name: z.string().min(1),
+    mount: z.string().startsWith("/mnt/memory/"),
+    seed: z.string().nullable(),
+  }).strict()),
+  deployments: z.array(z.object({
+    event: z.string().startsWith("cron."),
+    role: RoleEnum,
+    cron: z.string().min(1),
+    timezone: z.string().min(1),
+  }).strict()),
+  webhook_checklist: z.array(z.object({
+    event: z.string().min(1),
+    url: z.string().url(),
+  }).strict()),
+}).strict();
+export type Manifest = z.infer<typeof ManifestSchema>;

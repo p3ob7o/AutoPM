@@ -1,9 +1,9 @@
-import type { Config, RoleName } from "./schema.ts";
+import { resolveEnvironment, type Config, type RoleName } from "./schema.ts";
 
 const ROLE_DISPLAY: Record<RoleName, string> = {
   product: "Product", code: "Code", quality: "Quality", design: "Design",
   marketing: "Marketing", support: "Support", research: "Research",
-  project: "Project", finance: "Finance",
+  orchestrator: "Orchestrator", finance: "Finance",
 };
 
 export interface PlaceholderContext {
@@ -31,13 +31,11 @@ export function buildContext(config: Config, role: RoleName, modelDefault: strin
 
 function lookup(token: string, ctx: PlaceholderContext): string {
   const { config, role } = ctx;
-  const sb = config.sandbox.roles?.[role];
   switch (token) {
     case "role": return ROLE_DISPLAY[role];
     case "model": return ctx.resolvedModel;
-    case "sandbox_mode": return sb?.mode ?? config.sandbox.default;
-    case "sandbox_provider": return sb?.provider ?? "";
-    case "sandbox_endpoint": return sb?.endpoint ?? "";
+    // §8: the type of the environment this role is assigned to (§6A/§12).
+    case "sandbox_mode": return resolveEnvironment(config, role).type;
     case "project.name": return config.project.name;
     case "project.slug": return config.project.slug;
     case "project.repo": return config.project.repo;
@@ -59,8 +57,7 @@ function lookup(token: string, ctx: PlaceholderContext): string {
     const entry = config.mcp[name];
     if (!entry) throw new Error(`unknown placeholder: ${token} (no mcp server)`);
     if (field === "url") return entry.url;
-    if (field === "tunnel_id") return entry.tunnel_id ?? "";
-    throw new Error(`unknown placeholder: ${token} (bad mcp field)`);
+    throw new Error(`unknown placeholder: ${token} (bad mcp field — only 'url' exists, §6A)`);
   }
   if (token.startsWith("webhook.")) {
     const event = token.slice("webhook.".length);

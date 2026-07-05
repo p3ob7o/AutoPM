@@ -4,14 +4,24 @@ project:
   repo: git@example:demo.git
   domain: https://demo.example.com
   description: A demo product.
+models:
+  orchestrator: claude-sonnet-5
+environments:
+  definitions:
+    default:
+      type: cloud
+      networking:
+        policy: limited
+        allow_mcp_servers: true
+        allowed_hosts: []
+  roles:
+    orchestrator: default
 vault:
   github: op://x/y/GH
   linear: op://x/y/LIN
   anthropic: op://x/y/AN
 mcp:
   github: { url: "https://api.githubcopilot.com/mcp/" }
-sandbox:
-  default: managed
 webhooks:
   base_url: https://hook.demo.example.com
   routes:

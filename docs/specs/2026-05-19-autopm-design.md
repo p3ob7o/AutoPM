@@ -543,7 +543,10 @@ trigger is a scheduled deployment (cron expression + IANA timezone from
 pause/unpause/archive, auto-pause on non-recoverable failure, manual
 `run` for smoke-testing (works while paused), ≤10 s jitter, minute
 granularity. Run outcomes are observable via `deployment_run.*` webhook
-events. No missed-tick logic on our side.
+events. No missed-tick logic on our side. Event names encode their
+schedule — `cron.daily.HHMM` or `cron.weekly.<weekday>.HHMM` (24h, in
+`scheduler.timezone`); render derives each deployment's cron expression
+mechanically from the name.
 
 | Event | Lands on |
 |---|---|
@@ -666,9 +669,11 @@ Pure transform; no API calls.
 3. Substitutes placeholders.
 4. Emits `instances/<instance>/.rendered/` (gitignored) — two contracts:
    - **Per-agent CreateAgent-shaped YAML** —
-     `agents/<Role>.agent.yaml` (flat `name` / `model` / `system` /
-     `tools` / `mcp_servers` / `skills` / `multiagent`), the
-     version-controlled definition the platform's own workflow expects
+     `agents/<role>.agent.yaml` (flat `name` / `model` / `system` /
+     `tools` / `mcp_servers` / `skills` / `multiagent` / `metadata`;
+     `name` is `<project.slug>-<role>`, `metadata` carries
+     `autopm_instance` + `autopm_role`), the version-controlled
+     definition the platform's own workflow expects
      (`ant beta:agents create < file`, `update --version N`).
    - **Structured manifest** — `manifest.json`: environment definitions
      + role assignments, vault entries to create, memory-store names +
