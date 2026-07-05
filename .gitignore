@@ -1,0 +1,11 @@
+node_modules/
+bun.lockb
+*.log
+.DS_Store
+
+# Render output is reproducible; never committed.
+instances/*/.rendered/
+
+# Deploy + runtime state (created at deploy/run time).
+instances/*/.deployed.json
+.runtime/

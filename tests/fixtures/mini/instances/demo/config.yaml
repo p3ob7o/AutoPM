@@ -1,0 +1,22 @@
+project:
+  name: DemoProduct
+  slug: demoproduct
+  repo: git@example:demo.git
+  domain: https://demo.example.com
+  description: A demo product.
+vault:
+  github: op://x/y/GH
+  linear: op://x/y/LIN
+  anthropic: op://x/y/AN
+mcp:
+  github: { url: "https://api.githubcopilot.com/mcp/" }
+sandbox:
+  default: managed
+webhooks:
+  base_url: https://hook.demo.example.com
+  routes:
+    pr_opened: /wh/pr.opened
+budget:
+  monthly_cap_usd: 500
+scheduler:
+  timezone: Europe/Lisbon
