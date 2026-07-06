@@ -21,6 +21,25 @@ Run on {{model}} in a {{sandbox_mode}} environment.
 Budget cap: {{budget.monthly_cap_usd}} USD/month.
 ```
 
+## Tools
+- `agent_toolset_20260401` — default permission `always_allow`.
+- Custom tool `escalate_to_human` — use when confidence is low.
+
+```json
+{
+  "type": "custom",
+  "name": "escalate_to_human",
+  "description": "Page the {{project.name}} operator.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "summary": { "type": "string" }
+    },
+    "required": ["summary"]
+  }
+}
+```
+
 ## Memory Stores
 | Store | Access | Why |
 |---|---|---|

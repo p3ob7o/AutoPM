@@ -10,6 +10,7 @@ import {
 } from "./schema.ts";
 import { buildContext, resolve, resolveModel } from "./placeholders.ts";
 import { collectMemoryStores } from "./sections.ts";
+import { collectTools } from "./tools.ts";
 import { collectCronTriggers, cronExpressionFor } from "./triggers.ts";
 import { logger } from "../lib/logger.ts";
 
@@ -86,22 +87,24 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
     const model = resolveModel(config, role, fm.model_default);
     const cronTriggers = collectCronTriggers(body);
     let memoryStores: string[];
+    let tools: unknown[];
     try {
       memoryStores = collectMemoryStores(body);
+      tools = collectTools(body);
     } catch (err) {
       throw new Error(`agent '${role}': ${(err as Error).message}`);
     }
 
     // Contract 1 (§13): validate the CreateAgent shape before writing.
-    // tools/mcp_servers/skills stay empty until the agent-authoring milestones
-    // land their section parsers; empty arrays are valid CreateAgent input.
+    // mcp_servers/skills stay empty until their section parsers land with the
+    // milestones that first need them; empty arrays are valid CreateAgent input.
     let createAgent: CreateAgent;
     try {
       createAgent = CreateAgentSchema.parse({
         name: `${config.project.slug}-${role}`,
         model,
         system: systemPrompt,
-        tools: [],
+        tools,
         mcp_servers: [],
         skills: [],
         ...(fm.multi_agent === "coordinator"
