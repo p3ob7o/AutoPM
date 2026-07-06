@@ -31,15 +31,54 @@ describe("ExecutionPlanSchema", () => {
     expect(ExecutionPlanSchema.parse(plan()).steps).toHaveLength(1);
   });
 
-  test("accepts a manual_fallback step with a named blocker and null rubric", () => {
+  test("accepts a manual_fallback step with a named blocker and a reasoned null rubric", () => {
     const p = plan({
       steps: [step({
         execution: "manual_fallback",
         blockers: ["Code agent not deployed until First build"],
-        brief: { inputs: ["spec"], expected_outputs: ["PR"], rubric_file: null },
+        brief: {
+          inputs: ["spec"],
+          expected_outputs: ["PR"],
+          rubric_file: null,
+          rubric_absence_reason: "rubric authored at kickoff, not planning time",
+        },
       })],
     });
     expect(ExecutionPlanSchema.parse(p).steps[0].execution).toBe("manual_fallback");
+  });
+
+  test("rejects a manual_fallback step with no named blocker", () => {
+    const p = plan({
+      steps: [step({ execution: "manual_fallback", blockers: [] })],
+    });
+    expect(() => ExecutionPlanSchema.parse(p)).toThrow(
+      /manual_fallback requires at least one named blocker/,
+    );
+  });
+
+  test("rejects an ungated step with no rubric_absence_reason", () => {
+    const p = plan({
+      steps: [step({
+        brief: { inputs: ["x"], expected_outputs: ["y"], rubric_file: null },
+      })],
+    });
+    expect(() => ExecutionPlanSchema.parse(p)).toThrow(
+      /ungated work needs a stated reason/,
+    );
+  });
+
+  test("rejects a graded step that also carries rubric_absence_reason", () => {
+    const p = plan({
+      steps: [step({
+        brief: {
+          inputs: ["x"],
+          expected_outputs: ["y"],
+          rubric_file: "rubrics/x.md",
+          rubric_absence_reason: "should not be here",
+        },
+      })],
+    });
+    expect(() => ExecutionPlanSchema.parse(p)).toThrow(/mutually exclusive/);
   });
 
   test("rejects an invented role", () => {

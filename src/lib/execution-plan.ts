@@ -25,14 +25,45 @@ export const ExecutionStepSchema = z.object({
   brief: z.object({
     inputs: z.array(z.string().min(1)).min(1),
     expected_outputs: z.array(z.string().min(1)).min(1),
-    /** Rubric file reference for graded work; null = ungated, needs a stated reason. */
+    /** Rubric file reference for graded work; null = ungated. */
     rubric_file: z.string().min(1).nullable(),
-  }).strict(),
+    /**
+     * Machine-readable reason for ungated work — required when `rubric_file`
+     * is null, so ticket creation and quality gates can tell intentional
+     * ungated work from an omitted rubric. Mutually exclusive with a rubric.
+     */
+    rubric_absence_reason: z.string().min(1).nullable().default(null),
+  }).strict().superRefine((b, ctx) => {
+    if (b.rubric_file === null && b.rubric_absence_reason === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rubric_absence_reason"],
+        message: "ungated work needs a stated reason — set rubric_absence_reason when rubric_file is null",
+      });
+    }
+    if (b.rubric_file !== null && b.rubric_absence_reason !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rubric_absence_reason"],
+        message: "a graded step cannot also carry rubric_absence_reason — the fields are mutually exclusive",
+      });
+    }
+  }),
   projected_spend_usd: z.number().nonnegative(),
   blockers: z.array(z.string().min(1)).default([]),
   /** Filled in once ticket creation runs; null until then. */
   linear_issue_id: z.string().min(1).nullable().default(null),
-}).strict();
+}).strict().superRefine((s, ctx) => {
+  // Deployability evidence is part of the contract: a manual fallback with
+  // no named blocker hides *why* the handoff is not automated.
+  if (s.execution === "manual_fallback" && s.blockers.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["blockers"],
+      message: "manual_fallback requires at least one named blocker",
+    });
+  }
+});
 export type ExecutionStep = z.infer<typeof ExecutionStepSchema>;
 
 export const ExecutionPlanSchema = z.object({

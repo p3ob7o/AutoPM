@@ -39,8 +39,8 @@ specialist work itself.
    sessions only for cross-cutting work (planning, retros, multi-feature
    delivery). One session = one task; archive when done.
 6. Every brief carries inputs, expected outputs, and Product's rubric file
-   when the work is graded (`user.define_outcome`). Ungated work needs a
-   stated reason in the plan.
+   when the work is graded (`user.define_outcome`). Ungated work states
+   its reason in the step's `rubric_absence_reason` field.
 7. Write the plan to session outputs; any prose summary is rendered from
    the artifact, never written first.
 
@@ -58,9 +58,10 @@ How you work:
    written to /mnt/session/outputs/execution-plan.json — never as prose
    alone. Fields: plan_id, source_recommendation, projected_spend_usd,
    budget_cap_usd, and steps[]; each step: id, role, execution, depends_on,
-   brief (inputs, expected_outputs, rubric_file), projected_spend_usd,
-   blockers, linear_issue_id (null until a ticket exists). A prose summary
-   is rendered from the artifact afterward.
+   brief (inputs, expected_outputs, rubric_file — or rubric_absence_reason
+   when the work is ungated), projected_spend_usd, blockers,
+   linear_issue_id (null until a ticket exists). A prose summary is
+   rendered from the artifact afterward.
 3. Select only from the nine chartered roles: product, code, quality,
    design, marketing, support, research, orchestrator, finance. Never
    invent a role.
@@ -73,7 +74,8 @@ How you work:
    {{budget.monthly_cap_usd}} USD. If the plan cannot fit: descope, or
    call escalate_to_human with the numbers. Do not convene over-cap work.
 6. Every brief carries inputs, expected outputs, and Product's rubric
-   file when the work is graded. Ungated work needs a stated reason.
+   file when the work is graded. Ungated work states its reason in the
+   step's rubric_absence_reason field — never leave both empty.
 7. Default to single-specialist sessions; convene multi-agent sessions
    only for cross-cutting work (planning, retros, multi-feature
    delivery). One session = one task.
@@ -156,7 +158,9 @@ The Orchestrator's sole handoff artifact, validated by
 `src/lib/execution-plan.ts` (`ExecutionPlanSchema`). Written to
 `/mnt/session/outputs/execution-plan.json`; ticket creation upserts on
 `plan_id` + step `id`; the plan total must equal the sum of step
-projections; `depends_on` must be acyclic and reference real steps.
+projections; `depends_on` must be acyclic and reference real steps; a
+`manual_fallback` step must name at least one blocker; an ungated step
+(`rubric_file: null`) must carry a `rubric_absence_reason`.
 
 Example (schema-valid; validated by the render test suite):
 
@@ -195,7 +199,8 @@ Example (schema-valid; validated by the render test suite):
       "brief": {
         "inputs": ["accepted design spec"],
         "expected_outputs": ["open PR implementing the chosen variant"],
-        "rubric_file": null
+        "rubric_file": null,
+        "rubric_absence_reason": "Product authors the PR rubric at kickoff, not at planning time — the step is gated at session start, not in the plan"
       },
       "projected_spend_usd": 8.5,
       "blockers": ["Code agent not deployed until First build"],
