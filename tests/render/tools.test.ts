@@ -11,9 +11,35 @@ describe("collectTools", () => {
     expect(collectTools("## Role\nSomething.\n")).toEqual([]);
   });
 
-  test("collects the platform toolset from a prose mention", () => {
-    const body = "## Tools\n- `agent_toolset_20260401` — default `always_allow`.\n";
+  test("collects the platform toolset and its declared permission policy", () => {
+    const body = "## Tools\n- `agent_toolset_20260401` — default permission `always_allow`.\n";
+    expect(collectTools(body)).toEqual([
+      { type: "agent_toolset_20260401", default_config: { permission_policy: { type: "always_allow" } } },
+    ]);
+  });
+
+  test("emits a bare toolset entry when no policy is declared on its line", () => {
+    const body = "## Tools\n- `agent_toolset_20260401`.\n";
     expect(collectTools(body)).toEqual([{ type: "agent_toolset_20260401" }]);
+  });
+
+  test("throws when a declared custom tool has no fenced json block", () => {
+    const body = "## Tools\n- Custom tool `escalate_to_human` — use when confidence is low.\n";
+    expect(() => collectTools(body)).toThrow(
+      /custom tool 'escalate_to_human' is declared in '## Tools' but has no fenced json block/,
+    );
+  });
+
+  test("a mis-tagged fence does not satisfy a declared custom tool", () => {
+    const body = [
+      "## Tools",
+      "- Custom tool `ping`.",
+      "",
+      "```JSON5",
+      '{ "type": "custom", "name": "ping", "description": "d", "input_schema": { "type": "object" } }',
+      "```",
+    ].join("\n");
+    expect(() => collectTools(body)).toThrow(/custom tool 'ping'/);
   });
 
   test("collects custom tools from fenced json blocks", () => {
@@ -72,7 +98,10 @@ test("the real Product agent declares the toolset and escalate_to_human", async 
   const { content } = matter(raw);
   const tools = collectTools(content) as Array<Record<string, unknown>>;
 
-  expect(tools[0]).toEqual({ type: "agent_toolset_20260401" });
+  expect(tools[0]).toEqual({
+    type: "agent_toolset_20260401",
+    default_config: { permission_policy: { type: "always_allow" } },
+  });
   const custom = tools.find((t) => t.type === "custom") as Record<string, any>;
   expect(custom.name).toBe("escalate_to_human");
   expect(custom.description).toContain("failed acceptance twice");

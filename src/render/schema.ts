@@ -120,6 +120,14 @@ const AGENT_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 const AgentToolsetToolParams = z.object({
   type: z.literal("agent_toolset_20260401"),
+  // §7/§10: the agent file's declared default permission policy must survive
+  // into the emitted YAML — a toolset entry silently dropping it lets the
+  // deployed agent diverge from the spec'd policy.
+  default_config: z.object({
+    permission_policy: z.object({
+      type: z.enum(["always_allow", "always_ask"]),
+    }).passthrough(),
+  }).passthrough().optional(),
 }).passthrough();
 
 const McpToolsetToolParams = z.object({
