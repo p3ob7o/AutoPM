@@ -4,9 +4,15 @@ Instructions for any coding agent (or human) working in this repository.
 
 ## Where work is tracked: Linear owns the work, GitHub owns the artifacts
 
-Work on AutoPM is tracked in a **private Linear project** (team `TOTORO`,
-project *AutoPM* — 11 named milestones, Foundation → Ledger). GitHub carries
-**code, pull requests, reviews, and releases only**.
+Work on AutoPM is tracked in a **private Linear project** (team `DOMPROD`
+*Domaison Product*, project *AutoPM* — 11 named milestones, Foundation →
+Ledger). GitHub carries **code, pull requests, reviews, and releases only**.
+
+> **Team move (2026-07-06):** the project moved from team `TOTORO` to
+> `DOMPROD`; all issues were renumbered (`TOTORO-N` → `DOMPROD-M`). Old
+> `TOTORO-N` references in merged PRs, commit messages, and branch names
+> refer to the same issues under their old identifiers — Linear redirects
+> them. All new work uses `DOMPROD-N`.
 
 | Plane | Lives in |
 |---|---|
@@ -24,9 +30,9 @@ Deliberate non-uses — do not create:
 
 ## The per-issue rhythm
 
-1. Every change starts from a Linear issue (`TOTORO-N`).
+1. Every change starts from a Linear issue (`DOMPROD-N`).
 2. Branch off `main` using Linear's generated branch name
-   (`totoro-N-short-slug`). The Linear ID in the branch name is mandatory.
+   (`domprod-N-short-slug`). The Linear ID in the branch name is mandatory.
 3. Open a PR against `main`; reference the issue ID in the PR title or
    description (e.g. `Fixes TOTORO-253`).
 4. If the Linear↔GitHub integration is not attached to this repo, paste the
