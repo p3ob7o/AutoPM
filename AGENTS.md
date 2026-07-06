@@ -34,7 +34,7 @@ Deliberate non-uses — do not create:
 2. Branch off `main` using Linear's generated branch name
    (`domprod-N-short-slug`). The Linear ID in the branch name is mandatory.
 3. Open a PR against `main`; reference the issue ID in the PR title or
-   description (e.g. `Fixes TOTORO-253`).
+   description (e.g. `Fixes DOMPROD-2`).
 4. If the Linear↔GitHub integration is not attached to this repo, paste the
    PR URL into the Linear issue as a link, and move the issue manually
    (In Progress on branch, Done on merge).
