@@ -1,0 +1,4 @@
+# Scope test discovery to the repo's own tests — never vendored or stray
+# directories (bun only auto-skips a literal `node_modules`).
+[test]
+root = "tests"

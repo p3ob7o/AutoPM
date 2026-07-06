@@ -30,6 +30,18 @@ describe("render", () => {
     expect(product.multiagent).toBeUndefined();
     expect(product.metadata).toEqual({ autopm_instance: "demo", autopm_role: "product" });
 
+    // ## Tools renders into CreateAgent tools[] with placeholders resolved
+    // and the declared default permission policy preserved.
+    expect(product.tools).toHaveLength(2);
+    expect(product.tools[0]).toEqual({
+      type: "agent_toolset_20260401",
+      default_config: { permission_policy: { type: "always_allow" } },
+    });
+    const escalate = product.tools[1] as { type: string; name: string; description: string };
+    expect(escalate.type).toBe("custom");
+    expect(escalate.name).toBe("escalate_to_human");
+    expect(escalate.description).toBe("Page the DemoProduct operator.");
+
     const orch = CreateAgentSchema.parse(parseYaml(await readFile(rendered("agents/orchestrator.agent.yaml"), "utf8")));
     expect(orch.name).toBe("demoproduct-orchestrator");
     expect(orch.model).toBe("claude-sonnet-5");
