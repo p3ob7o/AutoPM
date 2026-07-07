@@ -456,9 +456,10 @@ rarely needs it (§7).
 `{{vault.<name>}}`, `{{mcp.<name>.url}}`, and `{{webhook.<event>}}` fail
 render if the named entry is absent from `config.yaml` — a missing
 credential or route should stop a deploy, not silently render blank.
-Secret *references* only, in the form `env:VAR_NAME`; values live in the
-operator's gitignored `.env` and are resolved from the deploy host's
-environment at deploy time — they never enter the repo or the sandbox.
+Secret *references* only, in the form `env:VAR_NAME` (schema-enforced:
+any other form fails config validation); values live in the operator's
+gitignored `.env` and are resolved from the deploy host's environment at
+deploy time — they never enter the repo or the sandbox.
 
 ## 9. Memory schema
 
@@ -615,11 +616,11 @@ environments:
   roles:                        # per-role assignment; omitted role → `default`
     # code: default             # (example: a future self-hosted env would be named here)
 
-vault:                          # secret *references* (env:VAR_NAME); resolved from the gitignored .env at deploy
-  github: <secret ref>          # required
-  linear: <secret ref>          # required
-  helpdesk: <secret ref>        # optional, required if Support deployed
-  anthropic: <secret ref>       # required
+vault:                          # secret *references* (env:VAR_NAME, schema-enforced); resolved from the gitignored .env at deploy
+  github: env:GITHUB_TOKEN      # required
+  linear: env:LINEAR_API_KEY    # required
+  helpdesk: env:HELPDESK_TOKEN  # optional, required if Support deployed
+  anthropic: env:ANTHROPIC_API_KEY  # required
 
 mcp:
   github: { url: <URL> }

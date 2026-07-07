@@ -52,15 +52,21 @@ const ProjectSchema = z.object({
   description: z.string().min(1),
 }).strict();
 
+/** Secret reference — env:VAR_NAME only; values resolve from the deploy host's env (DOMPROD-4). */
+export const VaultRef = z.string().regex(
+  /^env:[A-Z_][A-Z0-9_]*$/,
+  "vault refs must be env:VAR_NAME (e.g. env:GITHUB_TOKEN)",
+);
+
 export const ConfigSchema = z.object({
   project: ProjectSchema,
   models: z.record(RoleEnum, ModelId).optional(),
   environments: EnvironmentsSchema.default({ definitions: { default: { type: "cloud" } } }),
   vault: z.object({
-    github: z.string().min(1),
-    linear: z.string().min(1),
-    helpdesk: z.string().min(1).optional(),
-    anthropic: z.string().min(1),
+    github: VaultRef,
+    linear: VaultRef,
+    helpdesk: VaultRef.optional(),
+    anthropic: VaultRef,
   }).strict(),
   mcp: z.record(z.string(), z.object({ url: z.string().url() }).strict()),
   webhooks: z.object({
@@ -197,7 +203,7 @@ export const ManifestSchema = z.object({
   }).strict(),
   vault: z.array(z.object({
     name: z.string().min(1),
-    ref: z.string().min(1),
+    ref: VaultRef,
   }).strict()),
   mcp_servers: z.array(z.object({
     name: z.string().min(1),

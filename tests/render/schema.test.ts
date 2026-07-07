@@ -73,6 +73,21 @@ describe("ConfigSchema", () => {
     expect(() => ConfigSchema.parse({ ...valid, sandbox: { default: "managed" } })).toThrow(/sandbox/);
   });
 
+  test("rejects 1Password-style op:// vault refs (env:VAR_NAME only, DOMPROD-4)", () => {
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, github: "op://x/y/GH" },
+    })).toThrow(/env:VAR_NAME/);
+  });
+
+  test("rejects bare-string and lowercase vault refs", () => {
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, anthropic: "plain" },
+    })).toThrow(/env:VAR_NAME/);
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, linear: "env:lower_case" },
+    })).toThrow(/env:VAR_NAME/);
+  });
+
   test("rejects tunnel_id on an mcp server (§6A: no such field)", () => {
     expect(() => ConfigSchema.parse({
       ...valid,

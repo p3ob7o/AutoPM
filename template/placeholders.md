@@ -50,6 +50,7 @@ the Product role's context.
   render if the named entry is absent from `config.yaml`. This is intentional —
   a missing credential or route should stop a deploy, not silently render
   blank. Vault entries are secret *references* only, in the form
-  `env:VAR_NAME`; values live in the operator's gitignored `.env` file and are
-  resolved from the deploy host's environment at deploy time — they never
-  enter the repo or the sandbox.
+  `env:VAR_NAME` (schema-enforced — any other form fails config validation);
+  values live in the operator's gitignored `.env` file and are resolved from
+  the deploy host's environment at deploy time — they never enter the repo or
+  the sandbox.
