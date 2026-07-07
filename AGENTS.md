@@ -52,7 +52,8 @@ Deliberate non-uses — do not create:
   product-flavored found in `template/` is a bug.
 - **Public-readiness:** this repository may become publicly visible. Never
   commit secrets (no tokens, keys, or credential values — secret *references*
-  are resolved at deploy time from the operator's secret manager) and never
+  like `env:VAR_NAME` are resolved at deploy time from the deploy host's
+  environment, loaded from the operator's gitignored `.env`) and never
   commit personal or company-internal identifiers: private hostnames, tailnet
   names, internal git hosts, personal vault paths, or machine names.
 - **Design authority:** `docs/specs/` is the system's definition. Substantive

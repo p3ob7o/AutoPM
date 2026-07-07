@@ -289,11 +289,12 @@ parked in §17.
 
 ## 6B. Deployment phases
 
-Decided 2026-05-21; independence scrub 2026-07-05.
+Decided 2026-05-21; independence scrub 2026-07-05; secrets simplified to
+env-file 2026-07-07 (no external secret manager — DOMPROD-4).
 
 **AutoPM names only its own infrastructure.** Its own repo, its own
-Anthropic API key with a hard Console spend limit, its own secret-manager
-vault, its own LaunchAgent labels (`com.autopm.*`), its own Slack app,
+Anthropic API key with a hard Console spend limit, its own gitignored
+`.env` secrets file, its own LaunchAgent labels (`com.autopm.*`), its own Slack app,
 its own heartbeat — shared with nothing. No milestone may take a
 dependency on operator-personal systems.
 
@@ -322,15 +323,15 @@ dependency on operator-personal systems.
     native platform deployments (§11).
   - All roles run in the shared `cloud` environment in v1 — no
     self-hosted worker infra exists, and `cloud` is the default anyway
-    (§6A). API key from AutoPM's own vault, hard spend limit set in the
-    Console before anything runs.
+    (§6A). API key from AutoPM's own gitignored `.env`, hard spend
+    limit set in the Console before anything runs.
 - **v2 — hosted infrastructure.** Once v1 is proven, migrate the
   dispatcher to hosted/company infrastructure (candidate substrates:
   Atomic, or Claude Platform on AWS — the full Managed Agents surface
   runs there since 2026-05-29). At that point consider flipping
   Code/Quality to a self-hosted environment **only if** the
   memory-store limitation (§6A) has lifted, move secrets to the target
-  vault, and repoint webhooks. Because the runtime is Hono and
+  host's secret store, and repoint webhooks. Because the runtime is Hono and
   execution placement is config-only, this migration is configuration +
   redeploy, not a rewrite.
 
@@ -440,7 +441,7 @@ role's context.
 | `{{project.domain}}` | `config.project.domain` | `https://leandomainsearch.com` |
 | `{{project.description}}` | `config.project.description` | multi-line string |
 | `{{project.canon_path}}` | static | `/mnt/memory/product-canon` |
-| `{{vault.<name>}}` | `config.vault[name]` | `op://AutoPM-LDS/github/credential` |
+| `{{vault.<name>}}` | `config.vault[name]` | `env:GITHUB_TOKEN` |
 | `{{mcp.<name>.url}}` | `config.mcp[name].url` | `https://api.githubcopilot.com/mcp/` |
 | `{{webhook.<event>}}` | `config.webhooks.base_url` + `routes[event]` (third-party events only, §11) | `https://autopm-lds.example.com/wh/github/pr.opened` |
 | `{{budget.monthly_cap_usd}}` | `config.budget.monthly_cap_usd` | `800` |
@@ -455,8 +456,10 @@ rarely needs it (§7).
 `{{vault.<name>}}`, `{{mcp.<name>.url}}`, and `{{webhook.<event>}}` fail
 render if the named entry is absent from `config.yaml` — a missing
 credential or route should stop a deploy, not silently render blank.
-Secret *references* only; values are resolved at deploy time from the
-operator's secret manager and never enter the repo or the sandbox.
+Secret *references* only, in the form `env:VAR_NAME` (schema-enforced:
+any other form fails config validation); values live in the operator's
+gitignored `.env` and are resolved from the deploy host's environment at
+deploy time — they never enter the repo or the sandbox.
 
 ## 9. Memory schema
 
@@ -613,11 +616,11 @@ environments:
   roles:                        # per-role assignment; omitted role → `default`
     # code: default             # (example: a future self-hosted env would be named here)
 
-vault:                          # secret *references* into AutoPM's own vault; resolved at deploy
-  github: <secret ref>          # required
-  linear: <secret ref>          # required
-  helpdesk: <secret ref>        # optional, required if Support deployed
-  anthropic: <secret ref>       # required
+vault:                          # secret *references* (env:VAR_NAME, schema-enforced); resolved from the gitignored .env at deploy
+  github: env:GITHUB_TOKEN      # required
+  linear: env:LINEAR_API_KEY    # required
+  helpdesk: env:HELPDESK_TOKEN  # optional, required if Support deployed
+  anthropic: env:ANTHROPIC_API_KEY  # required
 
 mcp:
   github: { url: <URL> }
@@ -692,8 +695,9 @@ Provisions in dependency order. Idempotent.
 
 1. Re-runs render if `.rendered/` is stale.
 2. Provisions: **environments** (names are workspace-unique — treat 409
-   as "exists, reuse") → **vault + credentials** (secret refs resolved
-   from the operator's secret manager at deploy time; three platform
+   as "exists, reuse") → **vault + credentials** (secret refs
+   (`env:VAR_NAME`) resolved from the deploy host's environment —
+   loaded from the gitignored `.env` — at deploy time; three platform
    credential types: `mcp_oauth`, `static_bearer`,
    `environment_variable` with egress substitution scoped by
    `allowed_hosts` + `injection_location`) → **memory stores** (+seed;
@@ -747,7 +751,7 @@ platform deployments).
 
 - **Anthropic-side account provisioning.** AutoPM assumes its dedicated
   API key exists with a hard Console spend limit, credentials live in
-  AutoPM's own vault, and the beta is enabled.
+  AutoPM's own gitignored `.env`, and the beta is enabled.
 - **Self-hosted environment worker-host selection** (Cloudflare / Modal /
   E2B / GKE / Vercel / self) and standing up the actual worker. The
   *capability* is in scope (config + render + deploy carry

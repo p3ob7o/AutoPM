@@ -12,7 +12,7 @@ const valid = {
     domain: "https://leandomainsearch.com",
     description: "Domain search tool.",
   },
-  vault: { github: "op://a/g/cred", linear: "op://a/l/cred", anthropic: "op://a/an/cred" },
+  vault: { github: "env:GITHUB_TOKEN", linear: "env:LINEAR_API_KEY", anthropic: "env:ANTHROPIC_API_KEY" },
   mcp: { github: { url: "https://api.githubcopilot.com/mcp/" } },
   webhooks: { base_url: "https://x.example.com", routes: { pr_opened: "/wh/pr" } },
   budget: { monthly_cap_usd: 800 },
@@ -71,6 +71,21 @@ describe("ConfigSchema", () => {
 
   test("rejects the legacy sandbox block", () => {
     expect(() => ConfigSchema.parse({ ...valid, sandbox: { default: "managed" } })).toThrow(/sandbox/);
+  });
+
+  test("rejects 1Password-style op:// vault refs (env:VAR_NAME only, DOMPROD-4)", () => {
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, github: "op://x/y/GH" },
+    })).toThrow(/env:VAR_NAME/);
+  });
+
+  test("rejects bare-string and lowercase vault refs", () => {
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, anthropic: "plain" },
+    })).toThrow(/env:VAR_NAME/);
+    expect(() => ConfigSchema.parse({
+      ...valid, vault: { ...valid.vault, linear: "env:lower_case" },
+    })).toThrow(/env:VAR_NAME/);
   });
 
   test("rejects tunnel_id on an mcp server (§6A: no such field)", () => {
