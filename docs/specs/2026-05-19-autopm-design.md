@@ -293,7 +293,8 @@ Decided 2026-05-21; independence scrub 2026-07-05; secrets simplified to
 env-file 2026-07-07 (no external secret manager — DOMPROD-4).
 
 **AutoPM names only its own infrastructure.** Its own repo, its own
-Anthropic API key with a hard Console spend limit, its own gitignored
+Anthropic API key (hard Console spend limit as backstop — deferred to
+DOMPROD-46, 2026-07-07: progress never blocks on it), its own gitignored
 `.env` secrets file, its own LaunchAgent labels (`com.autopm.*`), its own Slack app,
 its own heartbeat — shared with nothing. No milestone may take a
 dependency on operator-personal systems.
@@ -323,8 +324,10 @@ dependency on operator-personal systems.
     native platform deployments (§11).
   - All roles run in the shared `cloud` environment in v1 — no
     self-hosted worker infra exists, and `cloud` is the default anyway
-    (§6A). API key from AutoPM's own gitignored `.env`, hard spend
-    limit set in the Console before anything runs.
+    (§6A). API key from AutoPM's own gitignored `.env`. The hard
+    Console spend limit is the intended backstop but is deferred
+    (DOMPROD-46) and never gates work; per-task ceilings (e.g. the $1
+    preflight cap) and the local spend ledger guard until it exists.
 - **v2 — hosted infrastructure.** Once v1 is proven, migrate the
   dispatcher to hosted/company infrastructure (candidate substrates:
   Atomic, or Claude Platform on AWS — the full Managed Agents surface
@@ -750,8 +753,9 @@ platform deployments).
 ## 14. Out of scope (this repo, this spec)
 
 - **Anthropic-side account provisioning.** AutoPM assumes its dedicated
-  API key exists with a hard Console spend limit, credentials live in
-  AutoPM's own gitignored `.env`, and the beta is enabled.
+  API key exists (hard Console spend limit deferred — DOMPROD-46),
+  credentials live in AutoPM's own gitignored `.env`, and the beta is
+  enabled.
 - **Self-hosted environment worker-host selection** (Cloudflare / Modal /
   E2B / GKE / Vercel / self) and standing up the actual worker. The
   *capability* is in scope (config + render + deploy carry
