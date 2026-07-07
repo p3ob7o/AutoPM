@@ -79,9 +79,9 @@ describe("render", () => {
       { event: "pr_opened", url: "https://hook.demo.example.com/wh/pr.opened" },
     ]);
     expect(manifest.vault).toEqual([
-      { name: "github", ref: "op://x/y/GH" },
-      { name: "linear", ref: "op://x/y/LIN" },
-      { name: "anthropic", ref: "op://x/y/AN" },
+      { name: "github", ref: "env:GITHUB_TOKEN" },
+      { name: "linear", ref: "env:LINEAR_API_KEY" },
+      { name: "anthropic", ref: "env:ANTHROPIC_API_KEY" },
     ]);
   });
 

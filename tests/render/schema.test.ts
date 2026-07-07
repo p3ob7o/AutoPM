@@ -12,7 +12,7 @@ const valid = {
     domain: "https://leandomainsearch.com",
     description: "Domain search tool.",
   },
-  vault: { github: "op://a/g/cred", linear: "op://a/l/cred", anthropic: "op://a/an/cred" },
+  vault: { github: "env:GITHUB_TOKEN", linear: "env:LINEAR_API_KEY", anthropic: "env:ANTHROPIC_API_KEY" },
   mcp: { github: { url: "https://api.githubcopilot.com/mcp/" } },
   webhooks: { base_url: "https://x.example.com", routes: { pr_opened: "/wh/pr" } },
   budget: { monthly_cap_usd: 800 },

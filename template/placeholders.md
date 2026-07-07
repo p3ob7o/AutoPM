@@ -2,7 +2,7 @@
 title: Placeholder Vocabulary
 type: doc
 created: 2026-05-21
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Placeholder vocabulary
@@ -28,7 +28,7 @@ the Product role's context.
 | `{{project.domain}}` | `config.project.domain` | `https://leandomainsearch.com` |
 | `{{project.description}}` | `config.project.description` | `Domain search tool.` |
 | `{{project.canon_path}}` | static | `/mnt/memory/product-canon` |
-| `{{vault.<name>}}` | `config.vault[name]` | `op://AutoPM-LDS/github/credential` |
+| `{{vault.<name>}}` | `config.vault[name]` | `env:GITHUB_TOKEN` |
 | `{{mcp.<name>.url}}` | `config.mcp[name].url` | `https://api.githubcopilot.com/mcp/` |
 | `{{webhook.<event>}}` | `config.webhooks.base_url` + `config.webhooks.routes[event]` (third-party events only, §11) | `https://autopm-lds.example.com/wh/github/pr.opened` |
 | `{{budget.monthly_cap_usd}}` | `config.budget.monthly_cap_usd` | `800` |
@@ -49,6 +49,7 @@ the Product role's context.
 - `{{vault.<name>}}`, `{{mcp.<name>.url}}`, and `{{webhook.<event>}}` fail
   render if the named entry is absent from `config.yaml`. This is intentional —
   a missing credential or route should stop a deploy, not silently render
-  blank. Vault entries are secret *references* only; values are resolved at
-  deploy time from the operator's secret manager and never enter the repo or
-  the sandbox.
+  blank. Vault entries are secret *references* only, in the form
+  `env:VAR_NAME`; values live in the operator's gitignored `.env` file and are
+  resolved from the deploy host's environment at deploy time — they never
+  enter the repo or the sandbox.

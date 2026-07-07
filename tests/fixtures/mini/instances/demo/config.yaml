@@ -17,9 +17,9 @@ environments:
   roles:
     orchestrator: default
 vault:
-  github: op://x/y/GH
-  linear: op://x/y/LIN
-  anthropic: op://x/y/AN
+  github: env:GITHUB_TOKEN
+  linear: env:LINEAR_API_KEY
+  anthropic: env:ANTHROPIC_API_KEY
 mcp:
   github: { url: "https://api.githubcopilot.com/mcp/" }
 webhooks:

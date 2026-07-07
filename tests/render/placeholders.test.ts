@@ -12,7 +12,7 @@ const config = ConfigSchema.parse({
     },
     roles: { code: "workers" },
   },
-  vault: { github: "op://a/g/cred", linear: "op://a/l/cred", anthropic: "op://a/an/cred" },
+  vault: { github: "env:GITHUB_TOKEN", linear: "env:LINEAR_API_KEY", anthropic: "env:ANTHROPIC_API_KEY" },
   mcp: { github: { url: "https://gh.mcp/" } },
   webhooks: { base_url: "https://hook.example.com", routes: { pr_opened: "/wh/pr.opened" } },
   budget: { monthly_cap_usd: 800 },
@@ -44,7 +44,7 @@ describe("resolve", () => {
   test("resolves project, vault, mcp, webhook, budget tokens", () => {
     const ctx = buildContext(config, "product", "claude-opus-4-8");
     expect(resolve("{{project.name}} {{project.canon_path}} {{vault.github}} {{mcp.github.url}} {{webhook.pr_opened}} {{budget.monthly_cap_usd}}", ctx))
-      .toBe("LeanDomainSearch /mnt/memory/product-canon op://a/g/cred https://gh.mcp/ https://hook.example.com/wh/pr.opened 800");
+      .toBe("LeanDomainSearch /mnt/memory/product-canon env:GITHUB_TOKEN https://gh.mcp/ https://hook.example.com/wh/pr.opened 800");
   });
 
   test("dropped May tokens now fail render (§8)", () => {
