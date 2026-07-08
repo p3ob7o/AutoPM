@@ -167,16 +167,23 @@ describe("deploy", () => {
 
     const report = await run(fake);
     // Product updates v1→v2; its roster pin in the orchestrator goes stale
-    // (pinned v1), so the orchestrator re-pins in the same run.
+    // (pinned v1), so the orchestrator re-pins in the same run — and the two
+    // deployments dispatch the orchestrator, whose deployment pin is now
+    // stale too, so they reconcile as well.
     expect(report.updated).toEqual([
       "agent demoproduct-product v1 → v2",
       "agent demoproduct-orchestrator v1 → v2",
+      "deployment demoproduct-cron.daily.0900",
+      "deployment demoproduct-cron.weekly.monday.1000",
     ]);
     expect(report.created).toEqual([]);
     const state = JSON.parse(await readFile(join(work, "instances/demo/.deployed.json"), "utf8"));
     expect(state.agents.product.version).toBe(2);
     const orch = fake.agents.find((a) => a.name === "demoproduct-orchestrator")!;
     expect((orch.multiagent!.agents[1] as { version: number }).version).toBe(2);
+    expect(fake.deployments.every((d) => d.agent.version === 2)).toBe(true);
+    // Reconciling a deployment never touches its pause state.
+    expect(fake.deployments.every((d) => d.status === "paused")).toBe(true);
 
     // And the run after the re-pin is a clean no-op again.
     const third = await run(fake);
@@ -206,5 +213,33 @@ describe("deploy", () => {
     const events = daily.initial_events as Array<{ type: string; content: Array<{ text: string }> }>;
     expect(events[0]!.type).toBe("user.message");
     expect(events[0]!.content[0]!.text).toContain("cron.daily.0900");
+    // The agent pin is explicit — typed selector with id + version — so
+    // drift is detectable.
+    const orch = fake.agents.find((a) => a.name === "demoproduct-orchestrator")!;
+    expect(daily.agent).toEqual({ type: "agent", id: orch.id, version: 1 });
+  });
+
+  test("deployments attach the instance vault so scheduled sessions can use its credentials", async () => {
+    const fake = new FakePlatform();
+    await run(fake);
+    const vault = fake.vaults[0]!;
+    for (const payload of fake.deploymentPayloads) {
+      expect(payload.vault_ids).toEqual([vault.id]);
+    }
+    expect(fake.deployments.every((d) => d.vault_ids.length === 1 && d.vault_ids[0] === vault.id)).toBe(true);
+  });
+
+  test("platform-side deployment drift (schedule tampered) reconciles back to the manifest", async () => {
+    const fake = new FakePlatform();
+    await run(fake);
+    const daily = fake.deployments.find((d) => d.name === "demoproduct-cron.daily.0900")!;
+    daily.schedule = { type: "cron", expression: "30 4 * * *", timezone: "UTC", last_run_at: null, upcoming_runs_at: [] };
+
+    const report = await run(fake);
+    expect(report.updated).toEqual(["deployment demoproduct-cron.daily.0900"]);
+    expect(daily.schedule).toMatchObject({ type: "cron", expression: "0 9 * * *", timezone: "Europe/Lisbon" });
+
+    const third = await run(fake);
+    expect(third.updated).toEqual([]);
   });
 });

@@ -726,7 +726,12 @@ Provisions in dependency order. Idempotent.
    **scheduled deployments** (one per `cron.*`
    trigger, **created paused** — with the Console spend limit deferred
    (DOMPROD-46) a cron going live must be a deliberate act, and manual
-   runs work while paused, so smoke tests still work) →
+   runs work while paused, so smoke tests still work. The instance
+   vault attaches via `vault_ids` so scheduled sessions can use its
+   credentials. Existing deployments are reconciled, not skipped: the
+   platform pins the agent version at write time, so deploy re-pins
+   after agent updates and restores drifted schedule/events/vault
+   attachments — pause state stays the operator's) →
    **webhook registration** — Console-manual today, shipped as the
    manifest's documented checklist with the event subscriptions.
 3. Note: the repo PAT feeds *two* consumers — the session

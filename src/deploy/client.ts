@@ -53,6 +53,11 @@ export interface PlatformDeployment {
   status: string;
   archived_at: string | null;
   metadata: Record<string, string>;
+  agent: { id: string; version?: number };
+  environment_id: string;
+  schedule: Record<string, unknown> | null;
+  initial_events: unknown[];
+  vault_ids: string[];
 }
 
 export interface DeployClient {
@@ -87,6 +92,7 @@ export interface DeployClient {
 
   listDeployments(): Promise<PlatformDeployment[]>;
   createDeployment(params: Record<string, unknown>): Promise<PlatformDeployment>;
+  updateDeployment(id: string, params: Record<string, unknown>): Promise<PlatformDeployment>;
   pauseDeployment(id: string): Promise<PlatformDeployment>;
 }
 
@@ -123,6 +129,7 @@ export function sdkDeployClient(apiKey: string): DeployClient {
     updateAgent: (id, p) => b.agents.update(id, p as never) as unknown as Promise<PlatformAgent>,
     listDeployments: () => drain(b.deployments.list()) as unknown as Promise<PlatformDeployment[]>,
     createDeployment: (p) => b.deployments.create(p as never) as unknown as Promise<PlatformDeployment>,
+    updateDeployment: (id, p) => b.deployments.update(id, p as never) as unknown as Promise<PlatformDeployment>,
     pauseDeployment: (id) => b.deployments.pause(id) as unknown as Promise<PlatformDeployment>,
   };
 }

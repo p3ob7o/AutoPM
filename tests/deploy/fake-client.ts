@@ -178,6 +178,16 @@ export class FakePlatform implements DeployClient {
     return [...this.deployments];
   }
 
+  // Mirrors the platform echo: the agent ref is materialized to an explicit
+  // {id, version} pin (like rosters), schedule gains computed runtime fields.
+  private materializeDeploymentAgent(agent: unknown): PlatformDeployment["agent"] {
+    if (typeof agent === "string") {
+      const ref = this.agents.find((a) => a.id === agent);
+      return { type: "agent", id: agent, version: ref?.version ?? 1 } as PlatformDeployment["agent"];
+    }
+    return structuredClone(agent) as PlatformDeployment["agent"];
+  }
+
   async createDeployment(params: Record<string, unknown>): Promise<PlatformDeployment> {
     this.count("createDeployment");
     const dep: PlatformDeployment = {
@@ -186,12 +196,29 @@ export class FakePlatform implements DeployClient {
       status: "active",
       archived_at: null,
       metadata: (params.metadata ?? {}) as Record<string, string>,
+      agent: this.materializeDeploymentAgent(params.agent),
+      environment_id: params.environment_id as string,
+      schedule: { ...structuredClone(params.schedule as object), last_run_at: null, upcoming_runs_at: [] } as Record<string, unknown>,
+      initial_events: structuredClone(params.initial_events) as unknown[],
+      vault_ids: structuredClone(params.vault_ids ?? []) as string[],
     };
     this.deployments.push(dep);
     this.deploymentPayloads.push(params);
     return dep;
   }
   deploymentPayloads: Array<Record<string, unknown>> = [];
+
+  async updateDeployment(id: string, params: Record<string, unknown>): Promise<PlatformDeployment> {
+    this.count("updateDeployment");
+    const dep = this.deployments.find((d) => d.id === id);
+    if (!dep) throw new Error(`no deployment ${id}`);
+    if (params.agent !== undefined) dep.agent = this.materializeDeploymentAgent(params.agent);
+    if (params.environment_id !== undefined) dep.environment_id = params.environment_id as string;
+    if (params.initial_events !== undefined) dep.initial_events = structuredClone(params.initial_events) as unknown[];
+    if (params.schedule !== undefined) dep.schedule = { ...structuredClone(params.schedule as object), last_run_at: null, upcoming_runs_at: [] } as Record<string, unknown>;
+    if (params.vault_ids !== undefined) dep.vault_ids = structuredClone(params.vault_ids) as string[];
+    return dep;
+  }
 
   async pauseDeployment(id: string): Promise<PlatformDeployment> {
     this.count("pauseDeployment");
