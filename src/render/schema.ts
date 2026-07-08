@@ -213,6 +213,9 @@ export const ManifestSchema = z.object({
     name: z.string().min(1),
     mount: z.string().startsWith("/mnt/memory/"),
     seed: z.string().nullable(),
+    // Injected into attached agents' system prompts by the platform —
+    // written for the model, sourced from `## Memory Stores` `Why` cells.
+    description: z.string().max(1024),
   }).strict()),
   deployments: z.array(z.object({
     event: z.string().startsWith("cron."),

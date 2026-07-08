@@ -15,9 +15,10 @@ describe("cli", () => {
     expect(r.stdout + r.stderr).toContain("Usage: autopm");
   });
 
-  test("deploy is a stub that says so", async () => {
+  test("deploy fails cleanly on a missing instance, pointing at the config path", async () => {
     const r = await runCli(["deploy", "leandomainsearch", "--dry-run"]);
-    expect(r.stdout + r.stderr).toContain("not implemented");
+    expect(r.code).not.toBe(0);
+    expect(r.stdout + r.stderr).toContain("missing config.yaml");
   });
 
   test("run is a stub that says so", async () => {

@@ -11,24 +11,33 @@ export function extractSection(body: string, heading: string): string | null {
 
 const STORE_NAME_RE = /^[a-z0-9-]+$/;
 
+export interface MemoryStoreRef { name: string; why: string }
+
 /**
- * Store names declared in an agent's `## Memory Stores` table (§7). The name
- * is the deploy contract: store name = mount directory (§9), so anything that
- * cannot be a mount directory fails loudly.
+ * Stores declared in an agent's `## Memory Stores` table (§7). The name is
+ * the deploy contract: store name = mount directory (§9), so anything that
+ * cannot be a mount directory fails loudly. The `Why` column feeds the
+ * platform store `description` — the platform injects it into the system
+ * prompt of any agent the store is attached to, so it is written for the
+ * model (§13 Contract 2).
  */
-export function collectMemoryStores(body: string): string[] {
+export function collectMemoryStores(body: string): MemoryStoreRef[] {
   const section = extractSection(body, "Memory Stores");
   if (!section) return [];
-  const out = new Set<string>();
+  const out = new Map<string, string>();
   for (const line of section.split("\n")) {
     const t = line.trim();
     if (!t.startsWith("|")) continue;
-    const first = (t.split("|")[1] ?? "").trim().replace(/^`|`$/g, "");
+    // "| name | access | why |" → drop the empty edge cells around the pipes.
+    const cells = t.split("|").map((c) => c.trim());
+    if (cells[0] === "") cells.shift();
+    if (cells[cells.length - 1] === "") cells.pop();
+    const first = (cells[0] ?? "").replace(/^`|`$/g, "");
     if (!first || first === "Store" || /^[-: ]+$/.test(first) || first.startsWith("(") || first === "—") continue;
     if (!STORE_NAME_RE.test(first)) {
       throw new Error(`invalid memory store name '${first}' in ## Memory Stores — store name = mount directory (§9), expected kebab-case`);
     }
-    out.add(first);
+    if (!out.has(first)) out.set(first, cells[2] ?? "");
   }
-  return [...out];
+  return [...out.entries()].map(([name, why]) => ({ name, why }));
 }

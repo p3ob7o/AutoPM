@@ -21,7 +21,7 @@ test("the Orchestrator is the coordinator on claude-opus-4-8", async () => {
 
 test("memory stores are exactly the §9 read-only trio", async () => {
   const { content } = await load();
-  expect(collectMemoryStores(content).sort()).toEqual([
+  expect(collectMemoryStores(content).map((s) => s.name).sort()).toEqual([
     "decisions-log", "product-canon", "team-roster",
   ]);
 });

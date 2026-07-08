@@ -9,7 +9,7 @@ import {
   type Config, type CreateAgent, type EnvironmentType, type Manifest, type RoleName,
 } from "./schema.ts";
 import { buildContext, resolve, resolveModel } from "./placeholders.ts";
-import { collectMemoryStores } from "./sections.ts";
+import { collectMemoryStores, type MemoryStoreRef } from "./sections.ts";
 import { collectTools } from "./tools.ts";
 import { collectCronTriggers, cronExpressionFor } from "./triggers.ts";
 import { logger } from "../lib/logger.ts";
@@ -25,7 +25,7 @@ export interface RenderedAgent {
   systemPrompt: string;
   body: string;
   cronTriggers: string[];
-  memoryStores: string[];
+  memoryStores: MemoryStoreRef[];
 }
 
 export interface RenderResult { agents: RenderedAgent[]; manifest: Manifest; }
@@ -86,7 +86,7 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
     const environment = resolveEnvironment(config, role);
     const model = resolveModel(config, role, fm.model_default);
     const cronTriggers = collectCronTriggers(body);
-    let memoryStores: string[];
+    let memoryStores: MemoryStoreRef[];
     let tools: unknown[];
     try {
       memoryStores = collectMemoryStores(body);
@@ -150,12 +150,23 @@ export async function render(opts: RenderOptions): Promise<RenderResult> {
   // The manifest lists every store the agents' `## Memory Stores` tables
   // reference, not just the seeded ones — grows-over-time stores like
   // decisions-log ship with seed: null but must still be provisioned.
-  const storeNames = new Set<string>(seeds.keys());
-  for (const a of agents) for (const s of a.memoryStores) storeNames.add(s);
-  const memoryStores: Manifest["memory_stores"] = [...storeNames].sort().map((name) => ({
+  // The store description is the union of the declaring agents' `Why` texts
+  // (deduped, role-sorted); the platform injects it into attached agents'
+  // system prompts, so it is written for the model.
+  const storeWhys = new Map<string, string[]>();
+  for (const name of seeds.keys()) storeWhys.set(name, []);
+  for (const a of agents) {
+    for (const s of a.memoryStores) {
+      const whys = storeWhys.get(s.name) ?? [];
+      if (s.why && !whys.includes(s.why)) whys.push(s.why);
+      storeWhys.set(s.name, whys);
+    }
+  }
+  const memoryStores: Manifest["memory_stores"] = [...storeWhys.keys()].sort().map((name) => ({
     name,
     mount: `/mnt/memory/${name}`,
     seed: seeds.get(name) ?? null,
+    description: (storeWhys.get(name) ?? []).join("; ").slice(0, 1024),
   }));
 
   // §11 class-1: one scheduled-deployment spec per declared cron.* trigger.

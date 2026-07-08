@@ -14,7 +14,7 @@ describe("extractSection", () => {
 });
 
 describe("collectMemoryStores", () => {
-  test("collects deduped store names, ignoring header/separator/none rows and other sections", () => {
+  test("collects deduped store refs with Why text, ignoring header/separator/none rows and other sections", () => {
     const body = `
 ## Memory Stores
 | Store | Access | Why |
@@ -27,7 +27,11 @@ describe("collectMemoryStores", () => {
 ## Notes
 | finance-actuals | read-only | a table row outside the Memory Stores section |
 `;
-    expect(collectMemoryStores(body).sort()).toEqual(["decisions-log", "product-canon"]);
+    const refs = collectMemoryStores(body).sort((a, b) => a.name.localeCompare(b.name));
+    expect(refs).toEqual([
+      { name: "decisions-log", why: "decisions" },
+      { name: "product-canon", why: "canon" }, // first row wins on duplicates
+    ]);
   });
 
   test("returns [] when there is no Memory Stores section", () => {
