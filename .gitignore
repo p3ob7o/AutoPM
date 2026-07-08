@@ -8,9 +8,9 @@ bun.lockb
 .env.*
 !.env.example
 
-# Render output is reproducible; never committed.
-instances/*/.rendered/
+# Render output is reproducible; never committed (also covers test fixtures).
+**/instances/*/.rendered/
 
 # Deploy + runtime state (created at deploy/run time).
-instances/*/.deployed.json
+**/instances/*/.deployed.json
 .runtime/
