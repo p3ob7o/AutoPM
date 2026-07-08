@@ -532,8 +532,10 @@ Defined in `template/orchestration.md`. Key rules:
   emails, money movement, public posts, `merge_pr` — all gated.
 - **Budget enforcement is the Orchestrator's, pre-flight.** It checks
   projected spend against the cap before convening work and refuses
-  over-cap plans; refusals escalate. (Finance reports and alarms — §11;
-  the Console hard limit is the mechanical backstop.)
+  over-cap plans; refusals escalate. (Finance reports and alarms — §11.
+  Until the deferred Console hard limit lands (DOMPROD-46), the
+  mechanical backstops are these pre-flight cap checks, per-task
+  ceilings, and the local spend ledger.)
 - **Escalate to human** — via `escalate_to_human` → the AutoPM Slack app
   (§6B) — when budget would be exceeded, a decision contradicts canon, a
   customer issue is too sensitive, or confidence is low.
