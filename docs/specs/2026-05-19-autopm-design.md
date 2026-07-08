@@ -685,9 +685,11 @@ Pure transform; no API calls.
      (`ant beta:agents create < file`, `update --version N`).
    - **Structured manifest** — `manifest.json`: environment definitions
      + role assignments, vault entries to create, memory-store names +
-     seed sources, deployment specs (cron expression + timezone +
-     initial event per `cron.*` trigger), and the webhook-registration
-     checklist.
+     seed sources + descriptions (sourced from the agents' `## Memory
+     Stores` `Why` cells — written *for the model*, since the platform
+     injects them into attached agents' system prompts), deployment
+     specs (cron expression + timezone per `cron.*` trigger), and the
+     webhook-registration checklist.
    - Plus `memory/<store>.txt` (final seed content),
      `rubrics/<Role>.md` (outcome rubric files, §7 mapping), and
      `skills/<id>/…` (custom skill bundles).
@@ -698,19 +700,38 @@ Pure transform; no API calls.
 
 Provisions in dependency order. Idempotent.
 
-1. Re-runs render if `.rendered/` is stale.
-2. Provisions: **environments** (names are workspace-unique — treat 409
-   as "exists, reuse") → **vault + credentials** (secret refs
-   (`env:VAR_NAME`) resolved from the deploy host's environment —
-   loaded from the gitignored `.env` — at deploy time; three platform
-   credential types: `mcp_oauth`, `static_bearer`,
-   `environment_variable` with egress substitution scoped by
-   `allowed_hosts` + `injection_location`) → **memory stores** (+seed;
-   store `description` fields are written *for the model* — they inject
-   into the system prompt) → **custom skills** → **eight specialist
-   agents** → **Orchestrator last** (its coordinator roster references
-   the specialists' IDs) → **scheduled deployments** (one per `cron.*`
-   trigger; verify `upcoming_runs_at`; smoke-test via manual `run`) →
+1. Always re-runs render first — it is cheap, deterministic, and
+   guarantees the manifest and agent YAML match template + config.
+2. Provisions: **environments** (platform names are namespaced
+   `<slug>-<env>` since environment names are workspace-unique — treat
+   409 as "exists, reuse"; networking is ALWAYS sent explicitly because
+   the platform default is `unrestricted`, verified 2026-07-07) →
+   **vault + credentials** (secret refs (`env:VAR_NAME`) resolved from
+   the deploy host's environment — loaded from the gitignored `.env` —
+   at deploy time, before any platform call; a missing var stops the
+   deploy. v1 mapping: a vault entry pairing with an MCP server by name
+   becomes a `static_bearer` credential against that server's URL;
+   unpaired entries (e.g. `anthropic`, consumed by the dispatcher
+   itself) are validated locally and recorded as `local` — no platform
+   credential. Token rotation is out of v1 scope; `mcp_oauth` and
+   `environment_variable` credential types arrive with the milestones
+   that need them) → **memory stores** (+seed on create only; store
+   `description` fields are written *for the model* — they inject into
+   the system prompt) → **custom skills** (post-v1) → **specialist
+   agents** → **Orchestrator last** (its coordinator roster is resolved
+   at deploy: `self` + each live specialist's agent ID. The platform
+   materializes rosters on write — `self` becomes a concrete versioned
+   ref and every entry gets version-pinned — so deploy re-pins the
+   roster whenever a specialist's version moves) →
+   **scheduled deployments** (one per `cron.*`
+   trigger, **created paused** — with the Console spend limit deferred
+   (DOMPROD-46) a cron going live must be a deliberate act, and manual
+   runs work while paused, so smoke tests still work. The instance
+   vault attaches via `vault_ids` so scheduled sessions can use its
+   credentials. Existing deployments are reconciled, not skipped: the
+   platform pins the agent version at write time, so deploy re-pins
+   after agent updates and restores drifted schedule/events/vault
+   attachments — pause state stays the operator's) →
    **webhook registration** — Console-manual today, shipped as the
    manifest's documented checklist with the event subscriptions.
 3. Note: the repo PAT feeds *two* consumers — the session
@@ -720,7 +741,8 @@ Provisions in dependency order. Idempotent.
 4. `--dry-run` prints the plan without making API calls.
 5. Writes `instances/<instance>/.deployed.json` — **id + version** of
    every created resource (agents, environments, stores, skills,
-   deployments, vault refs).
+   deployments, vault refs), keyed by manifest name. Secret values
+   never appear in it.
 6. Re-running `deploy` on an already-deployed instance updates
    in place. Memory stores are NOT overwritten — separate
    `autopm seed-memory --force` for that.

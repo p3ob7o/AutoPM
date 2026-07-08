@@ -31,7 +31,7 @@ test("the Product agent defaults to claude-opus-4-8 and is not the coordinator (
 test("the Product agent's Memory Stores table parses to the §9 stores it declares", async () => {
   const raw = await readFile("template/agents/Product/agent.md", "utf8");
   const { content } = matter(raw);
-  expect(collectMemoryStores(content).sort()).toEqual([
+  expect(collectMemoryStores(content).map((s) => s.name).sort()).toEqual([
     "decisions-log", "finance-actuals", "product-canon", "team-roster",
   ]);
 });
