@@ -6,11 +6,11 @@ import {
 
 const valid = {
   project: {
-    name: "LeanDomainSearch",
-    slug: "leandomainsearch",
-    repo: "git@github.com:acme/leandomainsearch.git",
-    domain: "https://leandomainsearch.com",
-    description: "Domain search tool.",
+    name: "AcmeSearch",
+    slug: "acmesearch",
+    repo: "git@github.com:acme/acmesearch.git",
+    domain: "https://acmesearch.example.com",
+    description: "Search tool.",
   },
   vault: { github: "env:GITHUB_TOKEN", linear: "env:LINEAR_API_KEY", anthropic: "env:ANTHROPIC_API_KEY" },
   mcp: { github: { url: "https://api.githubcopilot.com/mcp/" } },

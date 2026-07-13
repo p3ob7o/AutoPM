@@ -3,7 +3,7 @@ import { ConfigSchema } from "../../src/render/schema.ts";
 import { buildContext, collectTokens, resolve } from "../../src/render/placeholders.ts";
 
 const config = ConfigSchema.parse({
-  project: { name: "LeanDomainSearch", slug: "leandomainsearch", repo: "git@x:y.git", domain: "https://lds.com", description: "Tool." },
+  project: { name: "AcmeSearch", slug: "acmesearch", repo: "git@x:y.git", domain: "https://acme.example.com", description: "Tool." },
   models: { code: "claude-sonnet-5" },
   environments: {
     definitions: {
@@ -44,7 +44,7 @@ describe("resolve", () => {
   test("resolves project, vault, mcp, webhook, budget tokens", () => {
     const ctx = buildContext(config, "product", "claude-opus-4-8");
     expect(resolve("{{project.name}} {{project.canon_path}} {{vault.github}} {{mcp.github.url}} {{webhook.pr_opened}} {{budget.monthly_cap_usd}}", ctx))
-      .toBe("LeanDomainSearch /mnt/memory/product-canon env:GITHUB_TOKEN https://gh.mcp/ https://hook.example.com/wh/pr.opened 800");
+      .toBe("AcmeSearch /mnt/memory/product-canon env:GITHUB_TOKEN https://gh.mcp/ https://hook.example.com/wh/pr.opened 800");
   });
 
   test("dropped May tokens now fail render (§8)", () => {

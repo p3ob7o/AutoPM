@@ -22,15 +22,15 @@ the Product role's context.
 | `{{role}}` | agent frontmatter `role` (display name) | `Product` |
 | `{{model}}` | `config.models[thisRole]` ?? agent `model_default` | `claude-opus-4-8` |
 | `{{sandbox_mode}}` | type of the environment this role is assigned to (`environments.roles[thisRole]` → definition `type`) | `cloud` |
-| `{{project.name}}` | `config.project.name` | `LeanDomainSearch` |
-| `{{project.slug}}` | `config.project.slug` | `leandomainsearch` |
-| `{{project.repo}}` | `config.project.repo` | `git@github.com:acme/leandomainsearch.git` |
-| `{{project.domain}}` | `config.project.domain` | `https://leandomainsearch.com` |
+| `{{project.name}}` | `config.project.name` | `AcmeSearch` |
+| `{{project.slug}}` | `config.project.slug` | `acmesearch` |
+| `{{project.repo}}` | `config.project.repo` | `git@github.com:acme/acmesearch.git` |
+| `{{project.domain}}` | `config.project.domain` | `https://acmesearch.example.com` |
 | `{{project.description}}` | `config.project.description` | `Domain search tool.` |
 | `{{project.canon_path}}` | static | `/mnt/memory/product-canon` |
 | `{{vault.<name>}}` | `config.vault[name]` | `env:GITHUB_TOKEN` |
 | `{{mcp.<name>.url}}` | `config.mcp[name].url` | `https://api.githubcopilot.com/mcp/` |
-| `{{webhook.<event>}}` | `config.webhooks.base_url` + `config.webhooks.routes[event]` (third-party events only, §11) | `https://autopm-lds.example.com/wh/github/pr.opened` |
+| `{{webhook.<event>}}` | `config.webhooks.base_url` + `config.webhooks.routes[event]` (third-party events only, §11) | `https://autopm-acmesearch.example.com/wh/github/pr.opened` |
 | `{{budget.monthly_cap_usd}}` | `config.budget.monthly_cap_usd` | `800` |
 | `{{scheduler.timezone}}` | `config.scheduler.timezone` — feeds every scheduled deployment's IANA timezone | `Europe/Lisbon` |
 

@@ -11,7 +11,7 @@ import { FakePlatform } from "./fake-client.ts";
 const ENV = {
   GITHUB_TOKEN: "ghp_TESTSECRET_github",
   LINEAR_API_KEY: "lin_TESTSECRET_linear",
-  ANTHROPIC_API_KEY: "sk-ant-TESTSECRET_anthropic",
+  ANTHROPIC_API_KEY: "TESTSECRET-anthropic-key",
 };
 
 let work: string;
