@@ -4,15 +4,13 @@ Instructions for any coding agent (or human) working in this repository.
 
 ## Where work is tracked: Linear owns the work, GitHub owns the artifacts
 
-Work on AutoPM is tracked in a **private Linear project** (team `DOMPROD`
-*Domaison Product*, project *AutoPM* — 11 named milestones, Foundation →
-Ledger). GitHub carries **code, pull requests, reviews, and releases only**.
+Work on AutoPM is tracked in a **private Linear project** (issue prefix
+`DOMPROD`, project *AutoPM* — 11 named milestones, Foundation → Ledger).
+GitHub carries **code, pull requests, reviews, and releases only**.
 
-> **Team move (2026-07-06):** the project moved from team `TOTORO` to
-> `DOMPROD`; all issues were renumbered (`TOTORO-N` → `DOMPROD-M`). Old
-> `TOTORO-N` references in merged PRs, commit messages, and branch names
-> refer to the same issues under their old identifiers — Linear redirects
-> them. All new work uses `DOMPROD-N`.
+> **Note:** older `TOTORO-N` references in merged PRs, commit messages, and
+> branch names are the same issues under previous identifiers — Linear
+> redirects them. All new work uses `DOMPROD-N`.
 
 | Plane | Lives in |
 |---|---|
