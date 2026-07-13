@@ -1,0 +1,16 @@
+node_modules/
+bun.lockb
+*.log
+.DS_Store
+
+# Local secrets — never committed. Bun auto-loads .env at runtime.
+.env
+.env.*
+!.env.example
+
+# Render output is reproducible; never committed (also covers test fixtures).
+**/instances/*/.rendered/
+
+# Deploy + runtime state (created at deploy/run time).
+**/instances/*/.deployed.json
+.runtime/
